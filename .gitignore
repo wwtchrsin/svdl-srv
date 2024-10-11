@@ -2,6 +2,8 @@ node_modules/
 
 public/videos/
 
+yt-dlp/
+
 .env
 .env.*
 !.env.example

@@ -1,6 +1,6 @@
 const express = require("express")
 const { urlencoded, json } = require("body-parser")
-const { exec } = require("node:child_process")
+const { exec, spawn } = require("node:child_process")
 const { randomUUID } = require("node:crypto")
 const fs = require("node:fs")
 const cors = require("cors")
@@ -30,6 +30,7 @@ app.post("/url", (req, res) => {
   }
   const uid = randomUUID()
   const video = {
+    message: "",
     uid: uid,
     error: false,
     src: url,
@@ -37,11 +38,15 @@ app.post("/url", (req, res) => {
     timestamp: Math.floor((new Date()).valueOf() / 1000),
   }
   try {
-    exec(`./scripts/download.sh ${url} ${uid}`, (err, output) => {
-      if ( err ) {
-        video.error = true
-        return
-      }
+    const command = spawn("./scripts/download.sh", [url, uid])
+    command.stdout.on("data", output => {
+      video.message = output.toString()
+    })
+    command.on("error", () => {
+      video.error = true
+      video.message = ""
+    })
+    command.on("close", () => {
       const entries = fs.readdirSync(`./public/videos/${uid}`, { withFileTypes: true })
       const files = entries.filter(entry => entry.isFile())
       if ( files.length !== 1 ) {
@@ -64,6 +69,7 @@ app.get("/video/:uid", (req, res) => {
   if ( !uid ) {
     res.status(400)
     res.json({
+      message: undefined,
       url: undefined,
       error: true,
     })
@@ -75,6 +81,7 @@ app.get("/video/:uid", (req, res) => {
       res.json({
         url: videos[i].url,
         error: videos[i].error,
+        message: videos[i].message,
       })
       return
     }
@@ -83,11 +90,11 @@ app.get("/video/:uid", (req, res) => {
   res.json({
     url: undefined,
     error: true,
+    message: undefined,
   })
 })
 
 setInterval(() => {
-  const dirs = []
   const timestamp = Math.floor((new Date()).valueOf() / 1000)
   const HR3 = 3 * 3600
   for ( let i=0; i < videos.length; i++ ) {
@@ -99,6 +106,7 @@ setInterval(() => {
       videos.splice(i--, 1)
     }
   }
+  exec("./scripts/update.sh", () => {})
 }, 3600)
 
 module.exports = app
