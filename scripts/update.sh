@@ -1,3 +1,5 @@
 #!/bin/bash
 
-./yt-dlp/yt-dlp -U
+if [ "$DEV_MODE" != "1" ]; then
+  ./yt-dlp/yt-dlp -U
+fi

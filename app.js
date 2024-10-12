@@ -107,6 +107,6 @@ setInterval(() => {
     }
   }
   exec("./scripts/update.sh", () => {})
-}, 3600)
+}, 3600000)
 
 module.exports = app
