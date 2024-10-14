@@ -1,7 +1,7 @@
 #!/bin/bash
 
-format="bv*[ext=mp4][height<=1080]+ba/bv*[height<=1080]+ba/b[height<=1080]"
-outputDir="./public/videos/$2"
+format="bv*[ext=mp4][height<=$2]+ba/bv*[height<=$2]+ba/b[height<=$2]"
+outputDir="./public/videos/$3"
 
 mkdir $outputDir
-./yt-dlp/yt-dlp --no-mtime -f $format --paths $outputDir $1
+./yt-dlp/yt-dlp --no-mtime -f $format --paths $outputDir "$1"

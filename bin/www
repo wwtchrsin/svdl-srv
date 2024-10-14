@@ -28,14 +28,15 @@ var server = createServer(app);
 
 exec("./scripts/onload.sh" , (err) => {
   if ( err ) {
-    console.log("impossible to execute initializing script")
-    console.log(err)
+    console.error("impossible to execute initializing script")
+    console.error(err)
     return
   }
   exec("./scripts/update.sh", () => {})
   server.listen(port);
   server.on('error', onError);
   server.on('listening', onListening);
+  console.log(`server listens on port ${port}`)
 })
 
 /**
