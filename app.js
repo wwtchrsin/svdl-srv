@@ -38,6 +38,7 @@ app.post("/url", (req, res) => {
   url = url.trim()
   for ( let i=0; i < videos.length; i++ ) {
     if ( videos[i].src === url && videos[i].quality === quality ) {
+      videos[i].timestamp = (new Date()).valueOf()
       label.length && videos[i].labels.add(label)
       res.status(200)
       res.json({ uid: videos[i].uid })
@@ -55,7 +56,7 @@ app.post("/url", (req, res) => {
     quality: quality,
     url: undefined,
     labels: new Set(),
-    timestamp: Math.floor((new Date()).valueOf() / 1000),
+    timestamp: (new Date()).valueOf(),
   }
   label.length && video.labels.add(label)
   try {
@@ -75,16 +76,22 @@ app.post("/url", (req, res) => {
       console.error(err.toString())
     })
     command.on("close", () => {
+      if ( video.error ) {
+        console.error(`loading ${quality}-quality file from ${url}: error`)
+        return
+      }
       const entries = fs.readdirSync(`./public/videos/${uid}`, { withFileTypes: true })
       const files = entries.filter(entry => entry.isFile())
       if ( files.length !== 1 ) {
         video.error = true
-        console.error("file loaded: error -- wrong number of files in dir")
+        console.error(`processing files loaded from ${url}: ` + 
+          "error -- wrong number of files in dir")
         video.log.forEach(entry => console.error(entry))
         return
       }
       const fileName = encodeURIComponent(files[0].name)
       video.url = `videos/${uid}/${fileName}`
+      video.timestamp = (new Date()).valueOf()
       console.log(`${quality}-quality file loaded from ${url} as "${files[0].name}"`)
     })
     videos.push(video)
@@ -141,8 +148,8 @@ app.get("/sets/:label", (req, res) => {
 })
 
 setInterval(() => {
-  const timestamp = Math.floor((new Date()).valueOf() / 1000)
-  const HR3 = 3 * 3600
+  const timestamp = (new Date()).valueOf()
+  const HR3 = 3 * 3600000
   for ( let i=0; i < videos.length; i++ ) {
     let video = videos[i]
     if ( timestamp - video.timestamp > HR3 ) {
@@ -171,7 +178,7 @@ setInterval(() => {
       return
     }
     console.log("script update.sh: done")
-    output.toString().trim().length && console.log(output.toString())
+    console.log(output.toString())
   })
   console.log("task \"update\" started")
 }, 3600000 * 3)
