@@ -14,14 +14,14 @@ app.use(urlencoded({ extended: false }))
 app.use(json())
 
 app.post("/url", (req, res) => {
-  let { url, quality } = req.body
-  if ( !url || !url.trim ) {
+  let { url, quality, label } = req.body
+  if ( typeof url !== "string" || !url.trim() ) {
     res.status(400)
     res.json({ uid: undefined })
     console.log("request to /url: error -- url not set")
     return
   }
-  if ( !quality || !quality.trim ) {
+  if ( typeof quality !== "string" || !quality.trim() ) {
     res.status(400)
     res.json({ uid: undefined })
     console.log("request to /url -- quality not set")
@@ -34,16 +34,18 @@ app.post("/url", (req, res) => {
     console.log("request to /url -- wrong quality parameter")
     return
   }
+  label = typeof label === "string" ? label.trim() : ""
   url = url.trim()
   for ( let i=0; i < videos.length; i++ ) {
     if ( videos[i].src === url && videos[i].quality === quality ) {
+      label.length && videos[i].labels.add(label)
       res.status(200)
       res.json({ uid: videos[i].uid })
-      console.log(`request to /url from ${req.ip} -- known url`)
+      console.log(`request to /url -- known url`)
       return
     }
   }
-  console.log(`request to /url from ${req.ip} -- new url`)
+  console.log(`request to /url -- new url`)
   const uid = randomUUID()
   const video = {
     log: [],
@@ -52,8 +54,10 @@ app.post("/url", (req, res) => {
     src: url,
     quality: quality,
     url: undefined,
+    labels: new Set(),
     timestamp: Math.floor((new Date()).valueOf() / 1000),
   }
+  label.length && video.labels.add(label)
   try {
     const maxHeight = ({ high: 1080, medium: 720, low: 480 })[quality]
     const command = spawn("./scripts/download.sh", [url, maxHeight, uid])
@@ -79,7 +83,8 @@ app.post("/url", (req, res) => {
         video.log.forEach(entry => console.error(entry))
         return
       }
-      video.url = `videos/${uid}/${files[0].name}`
+      const fileName = encodeURIComponent(files[0].name)
+      video.url = `videos/${uid}/${fileName}`
       console.log(`${quality}-quality file loaded from ${url} as "${files[0].name}"`)
     })
     videos.push(video)
@@ -96,15 +101,6 @@ app.post("/url", (req, res) => {
 
 app.get("/video/:uid", (req, res) => {
   const { uid } = req.params
-  if ( !uid ) {
-    res.status(400)
-    res.json({
-      message: undefined,
-      url: undefined,
-      error: true,
-    })
-    return
-  }
   for ( let i=0; i < videos.length; i++ ) {
     if ( videos[i].uid === uid ) {
       res.status(200)
@@ -124,6 +120,24 @@ app.get("/video/:uid", (req, res) => {
   })
   console.log("request to /video/uid: error")
   console.log(`video with uid ${uid} not found`)
+})
+
+app.get("/sets/:label", (req, res) => {
+  const { label } = req.params
+  const files = []
+  for ( let i=0; i < videos.length; i++ ) {
+    if ( videos[i].labels.has(label) ) {
+      files.push({
+        src: videos[i].src,
+        quality: videos[i].quality,
+        url: videos[i].url,
+        error: videos[i].error,
+        message: videos[i].log.at(-1),
+      })
+    }
+  }
+  res.status(200)
+  res.json({ files })
 })
 
 setInterval(() => {
@@ -146,6 +160,10 @@ setInterval(() => {
       videos.splice(i--, 1)
     }
   }
+  console.log("task \"clean\" started")
+}, 3600000)
+
+setInterval(() => {
   exec("./scripts/update.sh", (err, output) => {
     if ( err ) {
       console.error("script update.sh: error -- impossible to execute command")
@@ -153,9 +171,9 @@ setInterval(() => {
       return
     }
     console.log("script update.sh: done")
-    output.length && console.log(output.toString())
+    output.toString().trim().length && console.log(output.toString())
   })
-  console.log("task clean & update started")
-}, 3600000)
+  console.log("task \"update\" started")
+}, 3600000 * 3)
 
 module.exports = app
