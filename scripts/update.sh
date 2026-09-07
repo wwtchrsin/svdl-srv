@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 if [ "$DEV_MODE" != "1" ]; then
   ./yt-dlp/yt-dlp -U
