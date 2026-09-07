@@ -29,11 +29,7 @@ yt-dlp updates every 3 hours.
 
 ## API endpoints
 
-### Download video
-**URL**
-```
-POST /url
-```
+### Download video: `POST /url`
 **Body**
 ```javascript
 {
@@ -59,11 +55,7 @@ POST /url
 }
 ```
 
-### Get download status
-**URL**
-```
-GET /video/{uid}
-```
+### Get download status: `GET /video/{uid}`
 **Parameters**
 ```
 {uid}: string //video identifier
@@ -86,11 +78,7 @@ GET /video/{uid}
 }
 ```
 
-### Find videos by label
-**URL**
-```
-GET /sets/{label}
-```
+### Find videos by label: `GET /sets/{label}`
 **Parameters**
 ```
 {label}: string
