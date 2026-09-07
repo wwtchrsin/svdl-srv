@@ -22,8 +22,6 @@ You can override the port value by setting the `PORT` environment variable.
 ```bash
 PORT=1234 node ./bin/www
 ```
-Note that the port the server listens on and 
-the port the client sends requests to must match.
 Once the server is started it will automatically check for
 yt-dlp updates every 3 hours.
 
